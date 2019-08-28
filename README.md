@@ -7,7 +7,7 @@
 
 #### 二、制作bind镜像
 
-1.Dockerfile：
+**1.Dockerfile**
 
 ```shell
 FROM scratch
@@ -54,7 +54,7 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/usr/local/bin/entrypoint.sh"]
 ```
 
-2.制作bind镜像
+**2.制作bind镜像**
 
 ```shell
 [root@docker bind]# docker-compose build
@@ -75,34 +75,34 @@ bind                20190725            3ec4c7f28439        7 days ago          
 
 #### 三、初始化bind数据库
 
-1.安装mariadb
+**1.安装mariadb**
 ```shell
 [root@dockert bind]# yum install -y mariadb-server
 ```
 
-2.创建bind数据库
+**2.创建bind数据库**
 ```sql
 MariaDB [(none)]> CREATE DATABASE bind DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 ```
 
-3.创建bind用户并授予查询权限
+**3.创建bind用户并授予查询权限**
 ```sql
 MariaDB [(none)]> CREATE USER 'bind'@'%' IDENTIFIED BY 'xxxx';
 MariaDB [(none)]> GRANT SELECT ON bind.* TO 'bind'@'%';
 ```
 
-4.导入bind库
+**4.导入bind库**
 ```sql
 MariaDB [(none)]> use bind
 MariaDB [bind]> source bind.sql
 ```
 
-5.开启mariadb远程连接权限（根据具体情况选择）
+**5.开启mariadb远程连接权限（根据具体情况选择）**
 ```sql
 MariaDB [(none)]> GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'xxxx';
 ```
 
-6.bind.records表结构及默认zone的sql语句如下：
+**6.bind.records表结构及默认zone的sql语句如下：**
 ```sql
 -- 创建表结构
 CREATE TABLE IF NOT EXISTS `records` (
@@ -145,10 +145,9 @@ INSERT INTO `records` (`zone`, `ttl`, `type`, `host`, `data`) VALUES
 ```
 
 
-
 #### 四、启动bind服务
 
-1.docker-compose文件如下：
+**1.docker-compose文件如下：**
 ```yaml
 version: "3"
 services:
@@ -169,7 +168,7 @@ services:
           - 53:53/udp                           # 对外开放端口
 ```
 
-2.entrypoint脚本如下:
+**2.entrypoint脚本如下：**
 ```bash
 #!/bin/bash
 #
@@ -232,14 +231,14 @@ init_config
 exec /usr/local/bind/sbin/named -g
 ```
 
-3.启动bind容器：
+**3.启动bind容器：**
 ```shell
 [root@docker bind]# docker-compose up -d
 Creating network "bind_default" with the default driver
 Creating bind_bind_1 ... done
 ```
 
-4.停止bind容器：
+**4.停止bind容器：**
 ```shell
 [root@docker bind]# docker-compose down
 Stopping bind_bind_1 ... done
@@ -247,7 +246,7 @@ Removing bind_bind_1 ... done
 Removing network bind_default
 ```
 
-5.查看日志：
+**5.查看日志：**
 ```shell
 [root@docker bind]# docker-compose logs -f
 ```
@@ -260,7 +259,7 @@ Removing network bind_default
 
 #### 六、使用dig命令解析
 
-1.使用dig解析域名如下：
+**1.使用dig解析域名如下：**
 ```shell
 [root@localhost bind]# dig @10.0.0.230 mirror.speech.local
 
@@ -293,8 +292,8 @@ speech.local.       86400   IN  NS  ns1.speech.local.
 ```
 
 
-#### 七、调优
-1.优化数据库性能
+#### 七、数据库调优
+
 ```shell
 [root@docker ~]# vi /etc/my.cnf                   # 在[mysqld]中添加
 
@@ -310,7 +309,8 @@ innodb_write_io_threads=8
 
 ```
 
-2.使用DNS多实例
+#### 八、使用DNS多实例
+
 **1.修改docker-compose.yml文件增加容器个数**
 ```yaml
 version: "3"
@@ -363,6 +363,7 @@ services:
         ports:
           - 13053:53/udp
 ```
+
 ```shell
 [root@docker bind]# docker-compose up -d
 [root@docker bind]# docker-compose ps
