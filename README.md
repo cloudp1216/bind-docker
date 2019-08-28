@@ -259,7 +259,6 @@ Removing network bind_default
 
 #### 六、使用dig命令解析
 
-**1.使用dig解析域名如下：**
 ```shell
 [root@localhost bind]# dig @10.0.0.230 mirror.speech.local
 
