@@ -1,0 +1,51 @@
+version: "3"
+services:
+    bind_11053:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        image: bind:20190725
+        environment:
+            DB_HOST: 172.17.0.1
+            DB_PORT: 3306
+            DB_NAME: bind
+            DB_USER: bind
+            DB_PASS: bind
+            DNS1: 114.114.114.114
+            DNS2: 8.8.8.8
+        ports:
+          - 11053:53/udp
+    
+    bind_12053:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        image: bind:20190725
+        environment:
+            DB_HOST: 172.17.0.1
+            DB_PORT: 3306
+            DB_NAME: bind
+            DB_USER: bind
+            DB_PASS: bind
+            DNS1: 114.114.114.114
+            DNS2: 8.8.8.8
+        ports:
+          - 12053:53/udp
+
+    bind_13053:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        image: bind:20190725
+        environment:
+            DB_HOST: 172.17.0.1
+            DB_PORT: 3306
+            DB_NAME: bind
+            DB_USER: bind
+            DB_PASS: bind
+            DNS1: 114.114.114.114
+            DNS2: 8.8.8.8
+        ports:
+          - 13053:53/udp
+
+
