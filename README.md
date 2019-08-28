@@ -7,21 +7,7 @@
 
 #### 二、制作bind镜像
 
-1.Docker镜像包括的文件如下：
-
-```shell
-[root@localhost bind]# ll
--rw-r--r--  1 root root  8159746 Jul 17 18:39 bind-9.11.9.tar.gz                 # bind程序源码包
--rw-r--r--  1 root root     1786 Jul 24 00:35 bind.sql                           # bind数据库
--rw-r--r--  1 root root 43074636 Jul 23 11:25 centos-7-x86_64-docker.tar.xz      # centos7的base-images
--rw-r--r--  1 root root      396 Jul 24 05:55 docker-compose.yml                 # docker-compose文件
--rw-r--r--  1 root root     1444 Jul 24 00:17 Dockerfile                         # Dockerfile
--rwxr-xr-x  1 root root     1684 Jul 24 00:12 entrypoint.sh                      # 启动脚本
--rwxr-xr-x  1 root root      944 Jul 23 11:26 set_mirror.sh                      # yum仓库设置脚本
--rw-r--r--  1 root root   385728 Jul 23 11:49 tini_0.18.0-amd64.rpm              # tini程序
-```
-
-2.Dockerfile：
+1.Dockerfile：
 
 ```shell
 FROM scratch
@@ -68,10 +54,10 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/usr/local/bin/entrypoint.sh"]
 ```
 
-3.制作bind镜像
+2.制作bind镜像
 
 ```shell
-[root@localhost bind]# docker-compose build
+[root@docker bind]# docker-compose build
 Building bind
 Step 1/9 : FROM scratch
  ---> 
@@ -81,7 +67,7 @@ Step 2/9 : ADD centos-7-x86_64-docker.tar.xz /
 Step 3/9 : ADD bind-9.11.9.tar.gz /tmp
 .....
 
-[root@localhost bind]# docker images bind
+[root@docker bind]# docker images bind
 REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
 bind                20190725            3ec4c7f28439        7 days ago          675MB
 ```
@@ -91,7 +77,7 @@ bind                20190725            3ec4c7f28439        7 days ago          
 
 1.安装mariadb
 ```shell
-[root@localhost bind]# yum install -y mariadb-server
+[root@dockert bind]# yum install -y mariadb-server
 ```
 
 2.创建bind数据库
@@ -248,14 +234,14 @@ exec /usr/local/bind/sbin/named -g
 
 3.启动bind容器：
 ```shell
-[root@localhost bind]# docker-compose up -d
+[root@docker bind]# docker-compose up -d
 Creating network "bind_default" with the default driver
 Creating bind_bind_1 ... done
 ```
 
 4.停止bind容器：
 ```shell
-[root@localhost bind]# docker-compose down
+[root@docker bind]# docker-compose down
 Stopping bind_bind_1 ... done
 Removing bind_bind_1 ... done
 Removing network bind_default
@@ -263,15 +249,13 @@ Removing network bind_default
 
 5.查看日志：
 ```shell
-[root@localhost bind]# docker-compose logs -f
+[root@docker bind]# docker-compose logs -f
 ```
 
 
 #### 五、添加DNS解析记录
 
-1.在mariadb开启远程连接的情况下，使用Navicat for MySQL连接数据库添加A记录即可（或者使用INSERT语句添加）：
-
-![](/images/1/3/dns_table.jpg)
+在mariadb开启远程连接的情况下，使用"Navicat for MySQL"连接数据库添加A记录即可（或者使用INSERT语句添加）。
 
 
 #### 六、使用dig命令解析
@@ -306,6 +290,132 @@ speech.local.       86400   IN  NS  ns1.speech.local.
 ;; SERVER: 10.0.0.230#53(10.0.0.230)
 ;; WHEN: Thu Aug 01 00:21:25 EDT 2019
 ;; MSG SIZE  rcvd: 128
+```
+
+
+#### 七、调优
+1.优化数据库性能
+```shell
+[root@docker ~]# vi /etc/my.cnf                   # 在[mysqld]中添加
+
+skip-name-resolve
+table_open_cache=256
+read_buffer_size=2M
+query_cache_type=1
+query_cache_size=128M
+thread_cache_size=16
+innodb_buffer_pool_size=256M
+innodb_read_io_threads=8
+innodb_write_io_threads=8
+
+```
+
+2.使用DNS多实例
+**1.修改docker-compose.yml文件增加容器个数**
+```yaml
+version: "3"
+services:
+    bind_11053:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        image: bind:20190725
+        environment:
+            DB_HOST: 172.17.0.1
+            DB_PORT: 3306
+            DB_NAME: bind
+            DB_USER: bind
+            DB_PASS: bind
+            DNS1: 114.114.114.114
+            DNS2: 8.8.8.8
+        ports:
+          - 11053:53/udp
+
+    bind_12053:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        image: bind:20190725
+        environment:
+            DB_HOST: 172.17.0.1
+            DB_PORT: 3306
+            DB_NAME: bind
+            DB_USER: bind
+            DB_PASS: bind
+            DNS1: 114.114.114.114
+            DNS2: 8.8.8.8
+        ports:
+          - 12053:53/udp
+
+    bind_13053:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        image: bind:20190725
+        environment:
+            DB_HOST: 172.17.0.1
+            DB_PORT: 3306
+            DB_NAME: bind
+            DB_USER: bind
+            DB_PASS: bind
+            DNS1: 114.114.114.114
+            DNS2: 8.8.8.8
+        ports:
+          - 13053:53/udp
+```
+```shell
+[root@docker bind]# docker-compose up -d
+[root@docker bind]# docker-compose ps
+      Name                     Command               State           Ports        
+----------------------------------------------------------------------------------
+bind_bind_11053_1   /usr/bin/tini -- /usr/loca ...   Up      0.0.0.0:11053->53/udp
+bind_bind_12053_1   /usr/bin/tini -- /usr/loca ...   Up      0.0.0.0:12053->53/udp
+bind_bind_13053_1   /usr/bin/tini -- /usr/loca ...   Up      0.0.0.0:13053->53/udp
+```
+
+**2.编译安装nginx**
+```shell
+[root@docker ~]# tar zxf nginx-1.16.0.tar.gz
+[root@docker ~]# cd nginx-1.16.0
+[root@docker nginx-1.16.0]# ./configure --prefix=/usr/local/nginx --with-stream
+[root@docker nginx-1.16.0]# make
+[root@docker nginx-1.16.0]# make install
+```
+
+**3.修改nginx配置文件**
+```shell
+[root@docker ~]# vi /usr/local/nginx/conf/nginx.conf
+
+user  nobody;
+worker_processes  8;
+worker_rlimit_nofile 65535;
+
+error_log logs/error.log error;
+
+events {
+    use epoll;
+    worker_connections  65535;
+}
+
+stream {
+    upstream dns {
+        server 10.0.0.230:11053 weight=10;
+        server 10.0.0.230:12053 weight=10;
+        server 10.0.0.230:13053 weight=10;
+    }
+
+    server {
+        listen 53 udp;
+        proxy_pass dns;
+        proxy_timeout 5s;
+        proxy_responses 1;
+    }
+}
+```
+
+**4.启动nginx代理**
+```shell
+[root@docker ~]# /usr/local/nginx/sbin/nginx
 ```
 
 
