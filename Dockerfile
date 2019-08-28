@@ -8,6 +8,7 @@ COPY entrypoint.sh /usr/local/bin
 COPY tini_0.18.0-amd64.rpm /tmp
 
 RUN set -x \
+        && /bin/cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
         && find /etc/yum.repos.d -name "*.repo" -exec unlink {} \; \
         && set_mirror.sh \
         && yum clean all \

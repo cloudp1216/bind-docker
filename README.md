@@ -1,7 +1,7 @@
 
 #### 一、内部DNS系统
 
-    主要针对实验室内部域名"speech.local"提供解析服务。
+    主要针对内部域名"speech.local"提供解析服务。
     软件"bind-9.11.9.tar.gz"从官网"https://www.isc.org"下载，运行为Docker容器服务。
 
 
@@ -34,6 +34,7 @@ COPY entrypoint.sh /usr/local/bin
 COPY tini_0.18.0-amd64.rpm /tmp
 
 RUN set -x \
+        && /bin/cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
         && find /etc/yum.repos.d -name "*.repo" -exec unlink {} \; \
         && set_mirror.sh \
         && yum clean all \
